@@ -1,8 +1,10 @@
-# Gravity Forms: Post Updates
+# Gravity Forms: Post Updates For Pods
 
 * * *
 
-http://wordpress.org/plugins/gravity-forms-post-updates/
+Adds the ability to save a file upload field to a custom field so that pods works. (it saves the attachment ID tot he field and moves the file to the media library)
+
+Shows file on update post.
 
 * * *
 

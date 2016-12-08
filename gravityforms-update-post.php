@@ -2,14 +2,15 @@
 /**
  * @link              https://github.com/jupitercow/gravity-forms-post-updates
  * @since             1.2.18
- * @package           gform_update_post
+ * @package           gform_update_post_pods
  *
  * @wordpress-plugin
- * Plugin Name:       Gravity Forms: Post Updates
+ * Plugin Name:       Gravity Forms: Post Updates For Pods
  * Plugin URI:        https://wordpress.org/plugins/gravity-forms-post-updates/
- * Description:       Allow Gravity Forms to update post content and the meta data associated with a post.
- * Version:           1.2.23
- * Author:            Jupitercow
+ * Description:       Allow Gravity Forms to update post content and the meta data associated with a post. Specially for pods allows for fileuploads to be used
+ * Version:           1.9.23
+ * Original Author:   Jupitercow
+ * Author: 						Saltnpixels
  * Author URI:        http://Jupitercow.com/
  * Contributer:       ekaj
  * Contributer:       jr00ck
@@ -82,6 +83,9 @@ class gform_update_post
 
 		// filters
 		add_filter( 'shortcode_atts_gravityforms',   array(__CLASS__, 'gf_shortcode_atts'), 10, 3 );
+		
+		//save file uploads as attachment id and save to library
+		add_action( 'gform_after_create_post', 'gf_add_to_media_library', 10, 3 );
 	}
 
 	/**
@@ -734,13 +738,13 @@ class gform_update_post
 				$file_array = explode(', ', $field['defaultValue']);
 				if ( $file_array ) {
 					foreach ( $file_array as $file ) {
-						$content .= self::create_uploaded_file( $file, $field, $form_id );
+						$content .= self::create_uploaded_file( wp_get_attachment_url($file), $field, $form_id );
 					}
 				}
 			}
 			else
 			{
-				$content .= self::create_uploaded_file( $field['defaultValue'], $field, $form_id );
+				$content .= self::create_uploaded_file( wp_get_attachment_url( $field['defaultValue']), $field, $form_id );
 			}
 		}
 		return $content;
@@ -1331,5 +1335,78 @@ class gform_update_post
 		return $tooltips;
 	}
 }
+
+
+/**
+ * Save file upload fields under custom post field to the library
+ * Dont let them save png by the way. it breaks the site. goes too slow.
+ * @param      <type>  $psost_id  The post identifier
+ * @param      <type>  $entry     The entry
+ * @param      <type>  $form      The form
+ */
+function gf_add_to_media_library ( $post_id, $entry, $form ) {
+  foreach($form['fields'] as $field){
+
+  //get media upload dir
+    $uploads = wp_upload_dir();     
+    $uploads_dir = $uploads['path'];      
+    $uploads_url = $uploads['url'];
+
+  //if its a custom field with input type file upload. 
+  if( $field['type'] == 'post_custom_field' && $field['inputType'] == 'fileupload'){
+    $entry_id = $field['id'];
+    $files = rgar ( $entry, $entry_id );
+    $custom_field = $field['postCustomFieldName']; //custom field key
+
+  //if file field is not empty or not []
+    if ( $files !== '' && $files !== "[]"){
+
+      $patterns = ['[', ']', '"']; //get rid of crap
+      $file_entry = str_replace($patterns, '', $files);
+      $files = explode ( ',', $file_entry  );
+
+        foreach ($files as $file) {
+          //each file is a url
+          //get the filename from end of url in match[1]
+            $filename = pathinfo($file, PATHINFO_FILENAME);
+            //add to media library
+            //WordPress API for image uploads.
+            include_once( ABSPATH . 'wp-admin/includes/image.php' );
+            include_once( ABSPATH . 'wp-admin/includes/file.php' );
+            include_once( ABSPATH . 'wp-admin/includes/media.php' );
+           
+            $new_url = stripslashes($file);
+            $result = media_sideload_image( $new_url, $post_id, $filename, 'src');
+            //saving the image to field or thumbnail
+            
+            if( strpos($field['cssClass'], 'thumb') === false  ){
+              $attachment_ids[] = (int)  get_attachment_id_from_src($result);
+            }
+            else{
+              set_post_thumbnail($post_id, (int)  get_attachment_id_from_src($result) );
+            }
+             
+        } //end foreach file
+        if ( isset( $attachment_ids ) ){
+          update_post_meta ($post_id, $custom_field, $attachment_ids);
+        }
+      } //end if files not empty
+    } //end if custom field of uploadfile
+  } 
+} //end for each form field
+
+
+
+//get id from new file added to library
+function get_attachment_id_from_src($image_src) {
+
+  global $wpdb;
+  $query = "SELECT ID FROM {$wpdb->posts} WHERE guid='$image_src'";
+  $id = $wpdb->get_var($query);
+  return $id;
+}
+
+
+
 
 endif;
