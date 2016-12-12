@@ -1379,7 +1379,7 @@ function gf_add_to_media_library ( $post_id, $entry, $form ) {
             $result = media_sideload_image( $new_url, $post_id, $filename, 'src');
             //saving the image to field or thumbnail
             
-            if( strpos($field['cssClass'], 'thumb') === false  ){
+            if( $custom_field !== '_thumbanil_id'  ){
               $attachment_ids[] = (int)  get_attachment_id_from_src($result);
             }
             else{

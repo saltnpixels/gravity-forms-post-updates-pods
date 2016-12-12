@@ -2,9 +2,11 @@
 
 * * *
 
-Adds the ability to save a file upload field to a custom field so that pods works. (it saves the attachment ID tot he field and moves the file to the media library)
+Adds the ability to save a file upload field to a custom field so that pods works. (it saves the attachment ID to the field and moves the file to the media library)
 
 Shows file on update post.
+
+If you want to save for the post thumbnail jsut make sure the cutomf field is set to _thumbnail_id
 
 * * *
 
